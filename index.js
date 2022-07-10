@@ -9,7 +9,11 @@ const io = require('socket.io')(server, {
   },
 });
 
-const assignRole = require('./util/assignRole');
+const { assignRole } = require('./util/assignRole');
+const generateBoard = require('./util/generateBoard');
+
+const board = generateBoard();
+console.log(board);
 
 const mainLobby = io.of('/initial');
 
@@ -33,13 +37,18 @@ io.of(/\/namespace-.+/).on('connection', (socket) => {
     players[inspName].push({
       id: socket.id,
       name: payload,
+      role: 'unset',
     });
-    console.log(players);
     insp.emit('players', players[inspName]);
     //there should be no pushing on the client side. the client will simply accept the server side players array as their own. This will help avoid duplicates
   });
   socket.on('start', () => {
-    //assign and send roles
+    players[inspName] = assignRole(players[inspName]);
+    players[inspName].forEach(({ id, role }) => {
+      console.log(role);
+      insp.to(id).emit('role', role);
+    });
+    insp.emit('players', players[inspName]);
   });
 });
 
